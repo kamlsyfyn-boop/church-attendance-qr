@@ -180,19 +180,21 @@ function submitManual() {
 }
 
 function submitMember(memberId) {
+
   memberId = String(memberId || "").trim();
+
+  if (!memberId) {
+    locked = false;
+    showResult("❌ Member ID غير صحيح.", "error");
+    return;
+  }
 
   const target =
     SYSTEM_URL.replace(/\/$/, "") +
-    ATTENDANCE_PAGE +
-    "&" +
-    encodeURIComponent(MEMBER_PARAM) +
-    "=" +
+    "?memberId=" +
     encodeURIComponent(memberId);
 
-  setTimeout(function() {
-    window.location.href = target;
-  }, 500);
+  window.location.href = target;
 }
 
 function escapeHtml(text) {
