@@ -194,7 +194,81 @@ function submitMember(memberId) {
     "?memberId=" +
     encodeURIComponent(memberId);
 
-  window.location.href = target;
+  fetch(target, {
+    method: "GET",
+    mode: "cors"
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+
+    if (data.result === "SUCCESS") {
+
+      showResult(
+        "✅ <b>تم تسجيل الحضور بنجاح</b><br>" +
+        "Member ID: " +
+        escapeHtml(memberId),
+        "success"
+      );
+
+      document.getElementById("manualMemberId").value = "";
+
+      locked = false;
+
+    } else if (data.result === "ALREADY_REGISTERED") {
+
+      showResult(
+        "⚠️ <b>العضو مسجل حضوره بالفعل</b><br>" +
+        "Member ID: " +
+        escapeHtml(memberId),
+        "error"
+      );
+
+      locked = false;
+
+    } else if (data.result === "MEMBER_NOT_FOUND") {
+
+      showResult(
+        "❌ <b>Member ID غير موجود</b><br>" +
+        escapeHtml(memberId),
+        "error"
+      );
+
+      locked = false;
+
+    } else if (data.result === "NO_ACTIVE_MEETING") {
+
+      showResult(
+        "⚠️ <b>لا يوجد اجتماع نشط حاليًا</b>",
+        "error"
+      );
+
+      locked = false;
+
+    } else {
+
+      showResult(
+        "❌ حدثت مشكلة أثناء تسجيل الحضور.<br>" +
+        "النتيجة: " +
+        escapeHtml(data.result || "UNKNOWN"),
+        "error"
+      );
+
+      locked = false;
+    }
+
+  })
+  .catch(function(error) {
+
+    showResult(
+      "❌ تعذر الاتصال بنظام الحضور.<br>" +
+      "تأكد من اتصال الإنترنت وحاول مرة أخرى.",
+      "error"
+    );
+
+    locked = false;
+  });
 }
 
 function escapeHtml(text) {
