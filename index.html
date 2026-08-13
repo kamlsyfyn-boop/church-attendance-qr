@@ -197,69 +197,63 @@ function submitMember(memberId) {
   "?api=attendance" +
   "&memberId=" +
   encodeURIComponent(memberId);
- fetch(target)
-  .then(function(response) {
-    return response.json();
-  })
-  .then(function(data) {
+ const callbackName =
+  "attendanceCallback_" + Date.now();
 
-    if (data.result === "SUCCESS") {
+window[callbackName] = function(data) {
 
-      showResult(
-        "✅ <b>تم تسجيل الحضور بنجاح</b><br>" +
-        "Member ID: " +
-        escapeHtml(memberId),
-        "success"
-      );
+  if (data.result === "SUCCESS") {
 
-      document.getElementById("manualMemberId").value = "";
+    showResult(
+      "✅ <b>تم تسجيل الحضور بنجاح</b><br>" +
+      "Member ID: " +
+      escapeHtml(memberId),
+      "success"
+    );
 
-      locked = false;
+    document.getElementById(
+      "manualMemberId"
+    ).value = "";
 
-      if (returnUrl) {
-        setTimeout(function() {
-          window.location.href = returnUrl;
-        }, 1500);
-      }
+    locked = false;
 
-      return;
+    if (returnUrl) {
+      setTimeout(function() {
+        window.location.href = returnUrl;
+      }, 1500);
     }
 
-    if (data.result === "ALREADY_REGISTERED") {
+  } else if (data.result === "ALREADY_REGISTERED") {
 
-      showResult(
-        "⚠️ <b>العضو مسجل حضوره بالفعل</b><br>" +
-        "Member ID: " +
-        escapeHtml(memberId),
-        "error"
-      );
+    showResult(
+      "⚠️ <b>العضو مسجل حضوره بالفعل</b><br>" +
+      "Member ID: " +
+      escapeHtml(memberId),
+      "error"
+    );
 
-      locked = false;
-      return;
-    }
+    locked = false;
 
-    if (data.result === "MEMBER_NOT_FOUND") {
+  } else if (data.result === "MEMBER_NOT_FOUND") {
 
-      showResult(
-        "❌ <b>Member ID غير موجود</b><br>" +
-        escapeHtml(memberId),
-        "error"
-      );
+    showResult(
+      "❌ <b>Member ID غير موجود</b><br>" +
+      escapeHtml(memberId),
+      "error"
+    );
 
-      locked = false;
-      return;
-    }
+    locked = false;
 
-    if (data.result === "NO_ACTIVE_MEETING") {
+  } else if (data.result === "NO_ACTIVE_MEETING") {
 
-      showResult(
-        "⚠️ <b>لا يوجد اجتماع نشط حاليًا</b>",
-        "error"
-      );
+    showResult(
+      "⚠️ <b>لا يوجد اجتماع نشط حاليًا</b>",
+      "error"
+    );
 
-      locked = false;
-      return;
-    }
+    locked = false;
+
+  } else {
 
     showResult(
       "❌ حدثت مشكلة أثناء تسجيل الحضور.<br>" +
@@ -269,18 +263,48 @@ function submitMember(memberId) {
     );
 
     locked = false;
+  }
 
-  })
-  .catch(function() {
-
-    showResult(
-      "❌ تعذر الاتصال بنظام الحضور.<br>" +
-      "تأكد من اتصال الإنترنت وحاول مرة أخرى.",
-      "error"
+  const oldScript =
+    document.getElementById(
+      callbackName + "_script"
     );
 
-    locked = false;
-  });
+  if (oldScript) {
+    oldScript.remove();
+  }
+
+  delete window[callbackName];
+};
+
+
+const script =
+  document.createElement("script");
+
+script.id =
+  callbackName + "_script";
+
+script.src =
+  target +
+  "&callback=" +
+  encodeURIComponent(callbackName);
+
+script.onerror = function() {
+
+  showResult(
+    "❌ تعذر الاتصال بنظام الحضور.<br>" +
+    "تأكد من اتصال الإنترنت وحاول مرة أخرى.",
+    "error"
+  );
+
+  locked = false;
+
+  script.remove();
+
+  delete window[callbackName];
+};
+
+document.body.appendChild(script);
 }
 
 function escapeHtml(text) {
