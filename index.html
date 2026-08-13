@@ -218,7 +218,12 @@ function submitMember(memberId) {
       document.getElementById("manualMemberId").value = "";
 
       locked = false;
-
+      if (returnUrl) {
+  setTimeout(function() {
+    window.location.href = returnUrl;
+  }, 1500);
+}
+      
     } else if (data.result === "ALREADY_REGISTERED") {
 
       showResult(
