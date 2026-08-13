@@ -197,10 +197,7 @@ function submitMember(memberId) {
   "?api=attendance" +
   "&memberId=" +
   encodeURIComponent(memberId);
-  fetch(target, {
-    method: "GET",
-    mode: "cors"
-  })
+ fetch(target)
   .then(function(response) {
     return response.json();
   })
@@ -218,13 +215,17 @@ function submitMember(memberId) {
       document.getElementById("manualMemberId").value = "";
 
       locked = false;
+
       if (returnUrl) {
-  setTimeout(function() {
-    window.location.href = returnUrl;
-  }, 1500);
-}
-      
-    } else if (data.result === "ALREADY_REGISTERED") {
+        setTimeout(function() {
+          window.location.href = returnUrl;
+        }, 1500);
+      }
+
+      return;
+    }
+
+    if (data.result === "ALREADY_REGISTERED") {
 
       showResult(
         "⚠️ <b>العضو مسجل حضوره بالفعل</b><br>" +
@@ -234,8 +235,10 @@ function submitMember(memberId) {
       );
 
       locked = false;
+      return;
+    }
 
-    } else if (data.result === "MEMBER_NOT_FOUND") {
+    if (data.result === "MEMBER_NOT_FOUND") {
 
       showResult(
         "❌ <b>Member ID غير موجود</b><br>" +
@@ -244,8 +247,10 @@ function submitMember(memberId) {
       );
 
       locked = false;
+      return;
+    }
 
-    } else if (data.result === "NO_ACTIVE_MEETING") {
+    if (data.result === "NO_ACTIVE_MEETING") {
 
       showResult(
         "⚠️ <b>لا يوجد اجتماع نشط حاليًا</b>",
@@ -253,21 +258,20 @@ function submitMember(memberId) {
       );
 
       locked = false;
-
-    } else {
-
-      showResult(
-        "❌ حدثت مشكلة أثناء تسجيل الحضور.<br>" +
-        "النتيجة: " +
-        escapeHtml(data.result || "UNKNOWN"),
-        "error"
-      );
-
-      locked = false;
+      return;
     }
 
+    showResult(
+      "❌ حدثت مشكلة أثناء تسجيل الحضور.<br>" +
+      "النتيجة: " +
+      escapeHtml(data.result || "UNKNOWN"),
+      "error"
+    );
+
+    locked = false;
+
   })
-  .catch(function(error) {
+  .catch(function() {
 
     showResult(
       "❌ تعذر الاتصال بنظام الحضور.<br>" +
