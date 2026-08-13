@@ -194,10 +194,9 @@ function submitMember(memberId) {
 
   const target =
   SYSTEM_URL.replace(/\/$/, "") +
-  "?memberId=" +
-  encodeURIComponent(memberId) +
-  "&returnUrl=" +
-  encodeURIComponent(returnUrl || "");
+  "?api=attendance" +
+  "&memberId=" +
+  encodeURIComponent(memberId);
   fetch(target, {
     method: "GET",
     mode: "cors"
