@@ -193,10 +193,11 @@ function submitMember(memberId) {
   }
 
   const target =
-    SYSTEM_URL.replace(/\/$/, "") +
-    "?memberId=" +
-    encodeURIComponent(memberId);
-
+  SYSTEM_URL.replace(/\/$/, "") +
+  "?memberId=" +
+  encodeURIComponent(memberId) +
+  "&returnUrl=" +
+  encodeURIComponent(returnUrl || "");
   fetch(target, {
     method: "GET",
     mode: "cors"
