@@ -292,8 +292,10 @@ script.src =
 script.onerror = function() {
 
   showResult(
-    "❌ تعذر الاتصال بنظام الحضور.<br>" +
-    "تأكد من اتصال الإنترنت وحاول مرة أخرى.",
+    "❌ خطأ في طلب الحضور<br><br>" +
+    "<small>" +
+    escapeHtml(script.src) +
+    "</small>",
     "error"
   );
 
