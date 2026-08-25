@@ -27,298 +27,692 @@
 </head>
 
 <body>
-<div class="wrap">
-  <div class="card">
-    <h1>📷 تسجيل الحضور</h1>
-    <div class="sub">اضغط على الزر لفتح الكاميرا وتصوير QR الخاص بالعضو.</div>
 
-    <button id="startQrButton" onclick="startQr()">📷 تصوير QR</button>
-    <button id="stopQrButton" class="danger" onclick="stopQr()" style="display:none">✖ إغلاق الكاميرا</button>
+<div class="wrap">
+
+  <div class="card">
+
+    <h1>📷 تسجيل الحضور</h1>
+
+    <div class="sub">
+      اضغط على الزر لفتح الكاميرا وتصوير QR الخاص بالعضو.
+    </div>
+
+    <button
+      id="startQrButton"
+      onclick="startQr()">
+      📷 تصوير QR
+    </button>
+
+    <button
+      id="stopQrButton"
+      class="danger"
+      onclick="stopQr()"
+      style="display:none">
+      ✖ إغلاق الكاميرا
+    </button>
 
     <div id="reader"></div>
-    <div id="result" class="result"></div>
+
+    <div
+      id="result"
+      class="result">
+    </div>
+
 
     <div class="manual">
-      <h3>تسجيل يدوي</h3>
-      <small>اكتب Member ID مثل: M0001</small>
-      <input id="manualMemberId" placeholder="M0001">
-      <button onclick="submitManual()">✅ تسجيل الحضور</button>
+
+      <h3>
+        تسجيل يدوي
+      </h3>
+
+      <small>
+        اكتب Member ID مثل: M0001
+      </small>
+
+      <input
+        id="manualMemberId"
+        placeholder="M0001">
+
+      <button
+        onclick="submitManual()">
+        ✅ تسجيل الحضور
+      </button>
+
     </div>
+
   </div>
+
 </div>
 
+
 <script>
+
 /*
-  ضع هنا رابط Web App الحالي لنظام Google Apps Script.
-  لا نستخدم Google Sheet جديد.
+  رابط Web App الحالي لنظام Google Apps Script.
+
+  مهم:
+  هذا الرابط مطلوب لتسجيل الحضور
+  وحفظه في Google Sheets.
+
+  لا يتم فتحه للمستخدم.
 */
-const SYSTEM_URL = "https://script.google.com/macros/s/AKfycbzDN4SYwieyP_1t_cd-F_FsaYc_4XExhT8brzAHnjyj8TfSZY_sV2qWu6vX0H264hCWYA/exec";
-const ATTENDANCE_PAGE = "?page=attendance";
-const MEMBER_PARAM = "memberId";
-const RETURN_PARAM = "returnUrl";
+
+const SYSTEM_URL =
+  "https://script.google.com/macros/s/AKfycbzDN4SYwieyP_1t_cd-F_FsaYc_4XExhT8brzAHnjyj8TfSZY_sV2qWu6vX0H264hCWYA/exec";
+
 
 let qrScanner = null;
+
 let locked = false;
+
 let lastScanned = "";
 
+
+/*
+==========================
+عرض النتيجة
+==========================
+*/
+
 function showResult(message, type="") {
-  const box = document.getElementById("result");
-  box.className = "result " + type;
-  box.innerHTML = message;
-  box.style.display = "block";
+
+  const box =
+    document.getElementById("result");
+
+  box.className =
+    "result " + type;
+
+  box.innerHTML =
+    message;
+
+  box.style.display =
+    "block";
 }
+
+
+/*
+==========================
+تشغيل QR
+==========================
+*/
 
 function startQr() {
-  if (typeof Html5Qrcode === "undefined") {
-    showResult("❌ لم يتم تحميل قارئ QR. تأكد من وجود إنترنت.", "error");
-    return;
-  }
 
-  if (SYSTEM_URL.includes("PUT_YOUR_EXISTING")) {
-    showResult("⚠️ الصفحة جاهزة، لكن لازم نربطها برابط نظام Apps Script الحالي أولًا.", "error");
-    return;
-  }
-
-  if (qrScanner) return;
-
-  const reader = document.getElementById("reader");
-  const startButton = document.getElementById("startQrButton");
-  const stopButton = document.getElementById("stopQrButton");
-
-  reader.style.display = "block";
-  startButton.style.display = "none";
-  stopButton.style.display = "inline-block";
-
-  qrScanner = new Html5Qrcode("reader");
-
-  qrScanner.start(
-    { facingMode: "environment" },
-    {
-      fps: 10,
-      qrbox: { width: 250, height: 250 }
-    },
-    function(decodedText) {
-      const memberId = String(decodedText || "").trim();
-
-      if (!memberId || locked || memberId === lastScanned) return;
-
-      locked = true;
-      lastScanned = memberId;
-
-      showResult(
-        "✅ تم قراءة QR<br>Member ID: <b>" +
-        escapeHtml(memberId) +
-        "</b><br>جاري تسجيل الحضور...",
-        "success"
-      );
-
-      stopQr().then(function() {
-        submitMember(memberId);
-      });
-    },
-    function() {
-      // أخطاء البحث العادية لا نعرضها.
-    }
-  ).catch(function(error) {
-    qrScanner = null;
-    reader.style.display = "none";
-    startButton.style.display = "inline-block";
-    stopButton.style.display = "none";
+  if (
+    typeof Html5Qrcode ===
+    "undefined"
+  ) {
 
     showResult(
-      "❌ تعذر تشغيل الكاميرا.<br>" +
-      "اسمح للمتصفح باستخدام الكاميرا وتأكد أن الصفحة تعمل عبر HTTPS.",
+      "❌ لم يتم تحميل قارئ QR. تأكد من وجود إنترنت.",
       "error"
     );
+
+    return;
+  }
+
+
+  if (
+    SYSTEM_URL.includes(
+      "PUT_YOUR_EXISTING"
+    )
+  ) {
+
+    showResult(
+      "⚠️ الصفحة جاهزة، لكن لازم نربطها برابط نظام Apps Script الحالي أولًا.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if (qrScanner) {
+    return;
+  }
+
+
+  const reader =
+    document.getElementById("reader");
+
+  const startButton =
+    document.getElementById(
+      "startQrButton"
+    );
+
+  const stopButton =
+    document.getElementById(
+      "stopQrButton"
+    );
+
+
+  reader.style.display =
+    "block";
+
+  startButton.style.display =
+    "none";
+
+  stopButton.style.display =
+    "inline-block";
+
+
+  qrScanner =
+    new Html5Qrcode("reader");
+
+
+  qrScanner.start(
+
+    { facingMode: "environment" },
+
+    {
+      fps: 10,
+      qrbox: {
+        width: 250,
+        height: 250
+      }
+    },
+
+    function(decodedText) {
+
+      const memberId =
+        String(decodedText || "")
+          .trim();
+
+
+      if (
+        !memberId ||
+        locked ||
+        memberId === lastScanned
+      ) {
+        return;
+      }
+
+
+      locked = true;
+
+      lastScanned =
+        memberId;
+
+
+      showResult(
+
+        "✅ تم قراءة QR<br>" +
+
+        "Member ID: <b>" +
+
+        escapeHtml(memberId) +
+
+        "</b><br>" +
+
+        "جاري تسجيل الحضور...",
+
+        "success"
+
+      );
+
+
+      stopQr().then(function() {
+
+        submitMember(memberId);
+
+      });
+
+    },
+
+    function() {
+
+      // أخطاء البحث العادية لا نعرضها.
+
+    }
+
+  ).catch(function(error) {
+
+    qrScanner = null;
+
+    reader.style.display =
+      "none";
+
+    startButton.style.display =
+      "inline-block";
+
+    stopButton.style.display =
+      "none";
+
+
+    showResult(
+
+      "❌ تعذر تشغيل الكاميرا.<br>" +
+
+      "اسمح للمتصفح باستخدام الكاميرا وتأكد أن الصفحة تعمل عبر HTTPS.",
+
+      "error"
+
+    );
+
   });
+
 }
 
+
+/*
+==========================
+إغلاق QR
+==========================
+*/
+
 function stopQr() {
+
   return new Promise(function(resolve) {
-    const reader = document.getElementById("reader");
-    const startButton = document.getElementById("startQrButton");
-    const stopButton = document.getElementById("stopQrButton");
+
+    const reader =
+      document.getElementById(
+        "reader"
+      );
+
+    const startButton =
+      document.getElementById(
+        "startQrButton"
+      );
+
+    const stopButton =
+      document.getElementById(
+        "stopQrButton"
+      );
+
 
     if (!qrScanner) {
-      reader.style.display = "none";
-      startButton.style.display = "inline-block";
-      stopButton.style.display = "none";
+
+      reader.style.display =
+        "none";
+
+      startButton.style.display =
+        "inline-block";
+
+      stopButton.style.display =
+        "none";
+
       resolve();
+
       return;
     }
 
-    const scanner = qrScanner;
+
+    const scanner =
+      qrScanner;
+
     qrScanner = null;
 
+
     scanner.stop().then(function() {
-      try { scanner.clear(); } catch(e) {}
-      reader.style.display = "none";
-      startButton.style.display = "inline-block";
-      stopButton.style.display = "none";
+
+      try {
+        scanner.clear();
+      } catch(e) {}
+
+
+      reader.style.display =
+        "none";
+
+      startButton.style.display =
+        "inline-block";
+
+      stopButton.style.display =
+        "none";
+
+
       resolve();
+
     }).catch(function() {
-      reader.style.display = "none";
-      startButton.style.display = "inline-block";
-      stopButton.style.display = "none";
+
+      reader.style.display =
+        "none";
+
+      startButton.style.display =
+        "inline-block";
+
+      stopButton.style.display =
+        "none";
+
+
       resolve();
+
     });
+
   });
+
 }
 
+
+/*
+==========================
+تسجيل يدوي
+==========================
+*/
+
 function submitManual() {
-  if (locked) return;
 
-  const id = document.getElementById("manualMemberId").value.trim();
-
-  if (!id) {
-    showResult("⚠️ من فضلك اكتب Member ID.", "error");
+  if (locked) {
     return;
   }
 
+
+  const id =
+    document.getElementById(
+      "manualMemberId"
+    ).value.trim();
+
+
+  if (!id) {
+
+    showResult(
+      "⚠️ من فضلك اكتب Member ID.",
+      "error"
+    );
+
+    return;
+  }
+
+
   locked = true;
+
   submitMember(id);
+
 }
+
+
+/*
+==========================
+تسجيل الحضور
+==========================
+*/
 
 function submitMember(memberId) {
 
-  const returnUrl = new URLSearchParams(window.location.search).get("returnUrl");
+  memberId =
+    String(memberId || "")
+      .trim();
 
-  memberId = String(memberId || "").trim();
 
   if (!memberId) {
+
     locked = false;
-    showResult("❌ Member ID غير صحيح.", "error");
+
+    showResult(
+      "❌ Member ID غير صحيح.",
+      "error"
+    );
+
     return;
   }
 
+
+  /*
+    إنشاء JSONP callback
+
+    Apps Script يستقبل الطلب
+    في الخلفية ويرجع النتيجة
+    بدون نقل المستخدم من GitHub.
+  */
+
   const target =
-  SYSTEM_URL.replace(/\/$/, "") +
-  "?api=attendance" +
-  "&memberId=" +
-  encodeURIComponent(memberId);
- const callbackName =
-  "attendanceCallback_" + Date.now();
 
-window[callbackName] = function(data) {
+    SYSTEM_URL.replace(
+      /\/$/,
+      ""
+    ) +
 
-  if (data.result === "SUCCESS") {
+    "?api=attendance" +
 
-    showResult(
-      "✅ <b>تم تسجيل الحضور بنجاح</b><br>" +
-      "Member ID: " +
-      escapeHtml(memberId),
-      "success"
+    "&memberId=" +
+
+    encodeURIComponent(
+      memberId
     );
 
-    document.getElementById(
-      "manualMemberId"
-    ).value = "";
 
-    locked = false;
+  const callbackName =
+    "attendanceCallback_" +
+    Date.now();
 
-    if (returnUrl) {
-      setTimeout(function() {
-        window.location.href = returnUrl;
-      }, 1500);
-    }
 
-  } else if (data.result === "ALREADY_REGISTERED") {
+  window[callbackName] =
+    function(data) {
 
-    showResult(
-      "⚠️ <b>العضو مسجل حضوره بالفعل</b><br>" +
-      "Member ID: " +
-      escapeHtml(memberId),
-      "error"
+
+      if (
+        data.result ===
+        "SUCCESS"
+      ) {
+
+        showResult(
+
+          "✅ <b>تم تسجيل الحضور بنجاح</b><br>" +
+
+          "Member ID: " +
+
+          escapeHtml(
+            memberId
+          ),
+
+          "success"
+
+        );
+
+
+        document.getElementById(
+          "manualMemberId"
+        ).value = "";
+
+
+        locked = false;
+
+
+      }
+
+      else if (
+        data.result ===
+        "ALREADY_REGISTERED"
+      ) {
+
+        showResult(
+
+          "⚠️ <b>العضو مسجل حضوره بالفعل</b><br>" +
+
+          "Member ID: " +
+
+          escapeHtml(
+            memberId
+          ),
+
+          "error"
+
+        );
+
+
+        locked = false;
+
+      }
+
+      else if (
+        data.result ===
+        "MEMBER_NOT_FOUND"
+      ) {
+
+        showResult(
+
+          "❌ <b>Member ID غير موجود</b><br>" +
+
+          escapeHtml(
+            memberId
+          ),
+
+          "error"
+
+        );
+
+
+        locked = false;
+
+      }
+
+      else if (
+        data.result ===
+        "NO_ACTIVE_MEETING"
+      ) {
+
+        showResult(
+
+          "⚠️ <b>لا يوجد اجتماع نشط حاليًا</b>",
+
+          "error"
+
+        );
+
+
+        locked = false;
+
+      }
+
+      else {
+
+        showResult(
+
+          "❌ حدثت مشكلة أثناء تسجيل الحضور.<br>" +
+
+          "النتيجة: " +
+
+          escapeHtml(
+            data.result ||
+            "UNKNOWN"
+          ),
+
+          "error"
+
+        );
+
+
+        locked = false;
+
+      }
+
+
+      /*
+        حذف Script الخاص بالطلب
+        فقط بعد استلام النتيجة.
+      */
+
+      const oldScript =
+        document.getElementById(
+          callbackName +
+          "_script"
+        );
+
+
+      if (oldScript) {
+        oldScript.remove();
+      }
+
+
+      delete window[
+        callbackName
+      ];
+
+    };
+
+
+  /*
+    إنشاء طلب Apps Script
+    في الخلفية.
+
+    المستخدم يظل على GitHub.
+  */
+
+  const script =
+    document.createElement(
+      "script"
     );
 
-    locked = false;
 
-  } else if (data.result === "MEMBER_NOT_FOUND") {
+  script.id =
+    callbackName +
+    "_script";
 
-    showResult(
-      "❌ <b>Member ID غير موجود</b><br>" +
-      escapeHtml(memberId),
-      "error"
+
+  script.src =
+    target +
+
+    "&callback=" +
+
+    encodeURIComponent(
+      callbackName
     );
 
-    locked = false;
 
-  } else if (data.result === "NO_ACTIVE_MEETING") {
+  script.onerror =
+    function() {
 
-    showResult(
-      "⚠️ <b>لا يوجد اجتماع نشط حاليًا</b>",
-      "error"
-    );
+      showResult(
 
-    locked = false;
+        "❌ خطأ في طلب الحضور",
 
-  } else {
+        "error"
 
-    showResult(
-      "❌ حدثت مشكلة أثناء تسجيل الحضور.<br>" +
-      "النتيجة: " +
-      escapeHtml(data.result || "UNKNOWN"),
-      "error"
-    );
-
-    locked = false;
-  }
-
-  const oldScript =
-    document.getElementById(
-      callbackName + "_script"
-    );
-
-  if (oldScript) {
-    oldScript.remove();
-  }
-
-  delete window[callbackName];
-};
+      );
 
 
-const script =
-  document.createElement("script");
+      locked = false;
 
-script.id =
-  callbackName + "_script";
 
-script.src =
-  target +
-  "&callback=" +
-  encodeURIComponent(callbackName);
+      script.remove();
 
-script.onerror = function() {
+      delete window[
+        callbackName
+      ];
 
-  showResult(
-    "❌ خطأ في طلب الحضور<br><br>" +
-    "<small>" +
-    escapeHtml(script.src) +
-    "</small>",
-    "error"
+    };
+
+
+  document.body.appendChild(
+    script
   );
 
-  locked = false;
-
-  script.remove();
-
-  delete window[callbackName];
-};
-
-document.body.appendChild(script);
 }
+
+
+/*
+==========================
+حماية النص
+==========================
+*/
 
 function escapeHtml(text) {
-  return String(text).replace(/[&<>"']/g, function(c) {
-    return {
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#039;"
-    }[c];
-  });
+
+  return String(text)
+    .replace(
+      /[&<>"']/g,
+      function(c) {
+
+        return {
+
+          "&": "&amp;",
+
+          "<": "&lt;",
+
+          ">": "&gt;",
+
+          '"': "&quot;",
+
+          "'": "&#039;"
+
+        }[c];
+
+      }
+    );
+
 }
+
 </script>
+
 </body>
 </html>
